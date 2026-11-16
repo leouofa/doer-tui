@@ -6,7 +6,6 @@ use doer_tui::config::Config;
 fn test_live_instance() {
     let test_url = std::env::var("DOER_TEST_URL")
         .or_else(|_| std::env::var("DOER_REMOTE_URL"))
-        .or_else(|_| std::env::var("DOER_API_URL"))
         .unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     let config = Config::new(&test_url);

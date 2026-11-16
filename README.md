@@ -1,13 +1,33 @@
 # doer-tui
 
-A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and checklist platform built with [Ratatui](https://ratatui.rs) and [Crossterm](https://github.com/crossterm-rs/crossterm).
+<p align="center">
+  <strong>A fast, keyboard-driven terminal user interface (TUI) for the <a href="https://github.com/leouofa/doer">Doer</a> task and checklist platform.</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-2021_Edition-dea584?style=flat-square&logo=rust&logoColor=white" alt="Rust 2021"></a>
+  <a href="https://ratatui.rs"><img src="https://img.shields.io/badge/Ratatui-0.28-111111?style=flat-square" alt="Ratatui"></a>
+  <a href="https://github.com/crossterm-rs/crossterm"><img src="https://img.shields.io/badge/Crossterm-0.28-blue?style=flat-square" alt="Crossterm"></a>
+  <img src="https://img.shields.io/badge/Architecture-Local--First-22c55e?style=flat-square" alt="Local-First Architecture">
+  <a href="https://github.com/leouofa/doer"><img src="https://img.shields.io/badge/Doer-Rails_8-D30001?style=flat-square&logo=rubyonrails&logoColor=white" alt="Doer Engine"></a>
+  <a href="https://github.com/leouofa/doer-mcp"><img src="https://img.shields.io/badge/MCP_Server-doer--mcp-6366f1?style=flat-square&logo=github&logoColor=white" alt="Doer MCP Server"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License: MIT"></a>
+</p>
+
+---
+
+A fast, keyboard-driven terminal user interface (TUI) for the [Doer](https://github.com/leouofa/doer) task and checklist platform built with [Ratatui](https://ratatui.rs) and [Crossterm](https://github.com/crossterm-rs/crossterm).
 
 ## Features
 
-- **Configurable Host URL & Quick Host Switcher**:
-  - Priority: CLI `--url <URL>` / `--host <URL>` / `--local` / `--remote` → `DOER_API_URL` env var → default `http://localhost:3000`.
-  - Built-in presets for local instances (`http://localhost:3000` and `http://localhost:3010`), plus support for custom remote URLs via `DOER_REMOTE_URL`.
-  - Press `H` or `u` at any time to open the in-app **Host Switcher** modal to toggle between presets or enter any custom URL on the fly.
+- **Host URL Resolution & Host Switcher**:
+  - **Environment default**: When `DOER_REMOTE_URL` is set in the shell (e.g. `export DOER_REMOTE_URL="http://your-host:3010"`), running `cargo run` defaults directly to that URL.
+  - **Fallback**: If `DOER_REMOTE_URL` is not set, defaults to `http://localhost:3000`.
+  - **CLI overrides**: `--url <URL>`, `--host <URL>`, and `--local` (`http://localhost:3000`) always take precedence over the environment.
+  - **Locking behavior**:
+    - If `DOER_REMOTE_URL` is set, host switching is locked by default so the TUI stays pinned to your configured instance.
+    - Pass `--allow-switch` to re-enable the Host Switcher dialog while using `DOER_REMOTE_URL`.
+    - If `DOER_REMOTE_URL` is not set, Host Switcher (`H` or `u`) is enabled automatically.
 - **3-Pane Master–Detail Layout**:
   - **Header**: Live host URL badge, stats counters (Total, Pinned, Projects, Attachments), and search query.
   - **Pane 1 `[1] Scopes & Projects`**: All Todo Lists, ★ Pinned, Standalone, and all Projects with task counts.
@@ -33,22 +53,24 @@ A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and 
 
 ## Installation & Running
 
+> [!NOTE]
+> `doer-tui` connects to a running [Doer](https://github.com/leouofa/doer) backend instance (defaults to `http://localhost:3000` or `DOER_REMOTE_URL`).
+
 ```bash
 # Build
 cargo build --release
 
-# Run with default host (http://localhost:3000)
+# Run (defaults to DOER_REMOTE_URL if set, otherwise http://localhost:3000)
 cargo run
 
-# Run pointing to a secondary/remote host preset
-cargo run -- --remote
+# Force local host even if DOER_REMOTE_URL is set
+cargo run -- --local
 
-# Or specify any host URL directly
+# Specify any target host explicitly
 cargo run -- --url http://localhost:3010
 
-# Or via environment variable
-export DOER_API_URL="http://localhost:3010"
-cargo run
+# Allow in-app Host Switcher even when DOER_REMOTE_URL is set
+cargo run -- --allow-switch
 ```
 
 ## Keyboard Shortcuts
@@ -67,7 +89,7 @@ cargo run
 | `g` / `G` | Jump to top / bottom of detail document |
 | `y` | Yank active task text to system clipboard |
 | `Y` | Yank full markdown body to system clipboard |
-| `H` / `u` | Open Host Switcher dialog |
+| `H` / `u` | Open Host Switcher dialog (when enabled or via `--allow-switch`) |
 | `/` | Live search & filter todo lists (`Esc` to clear) |
 | `n` | New Project (in pane 1) or Todo List (in pane 2/3) |
 | `e` | Edit Project or Todo List metadata |

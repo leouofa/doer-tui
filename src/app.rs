@@ -498,11 +498,18 @@ impl App {
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Char('?') => self.modal = Some(Modal::Help),
             KeyCode::Char('H') | KeyCode::Char('u') => {
-                self.modal = Some(Modal::HostSwitcher {
-                    cursor: 0,
-                    custom_input: self.config.base_url.clone(),
-                    entering_custom: false,
-                });
+                if self.config.allow_host_switcher {
+                    self.modal = Some(Modal::HostSwitcher {
+                        cursor: 0,
+                        custom_input: self.config.base_url.clone(),
+                        entering_custom: false,
+                    });
+                } else {
+                    self.set_status(
+                        "Host switching locked by DOER_REMOTE_URL (pass --allow-switch to enable)",
+                        true,
+                    );
+                }
             }
             KeyCode::Char('/') => {
                 self.modal = Some(Modal::Search {
