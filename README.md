@@ -1,6 +1,22 @@
 # doer-tui
 
-A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and checklist platform built with [Ratatui](https://ratatui.rs) and [Crossterm](https://github.com/crossterm-rs/crossterm).
+<p align="center">
+  <strong>A fast, keyboard-driven terminal user interface (TUI) for the <a href="https://github.com/leouofa/doer">Doer</a> task and checklist platform.</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-2021_Edition-dea584?style=flat-square&logo=rust&logoColor=white" alt="Rust 2021"></a>
+  <a href="https://ratatui.rs"><img src="https://img.shields.io/badge/Ratatui-0.28-111111?style=flat-square" alt="Ratatui"></a>
+  <a href="https://github.com/crossterm-rs/crossterm"><img src="https://img.shields.io/badge/Crossterm-0.28-blue?style=flat-square" alt="Crossterm"></a>
+  <img src="https://img.shields.io/badge/Architecture-Local--First-22c55e?style=flat-square" alt="Local-First Architecture">
+  <a href="https://github.com/leouofa/doer"><img src="https://img.shields.io/badge/Doer-Rails_8-D30001?style=flat-square&logo=rubyonrails&logoColor=white" alt="Doer Engine"></a>
+  <a href="https://github.com/leouofa/doer-mcp"><img src="https://img.shields.io/badge/MCP_Server-doer--mcp-6366f1?style=flat-square&logo=github&logoColor=white" alt="Doer MCP Server"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License: MIT"></a>
+</p>
+
+---
+
+A fast, keyboard-driven terminal user interface (TUI) for the [Doer](https://github.com/leouofa/doer) task and checklist platform built with [Ratatui](https://ratatui.rs) and [Crossterm](https://github.com/crossterm-rs/crossterm).
 
 ## Features
 
@@ -36,6 +52,9 @@ A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and 
   - `/`: Open real-time search filter across Todo Lists. Press `Esc` to clear.
 
 ## Installation & Running
+
+> [!NOTE]
+> `doer-tui` connects to a running [Doer](https://github.com/leouofa/doer) backend instance (defaults to `http://localhost:3000` or `DOER_REMOTE_URL`).
 
 ```bash
 # Build
