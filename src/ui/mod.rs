@@ -70,9 +70,13 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" (H to switch) ", Style::default().fg(Color::DarkGray)),
-        Span::styled(format!(" · {}", stats_text), Style::default().fg(Color::Gray)),
     ];
+
+    if app.config.allow_host_switcher {
+        spans.push(Span::styled(" (H to switch) ", Style::default().fg(Color::DarkGray)));
+    }
+
+    spans.push(Span::styled(format!(" · {}", stats_text), Style::default().fg(Color::Gray)));
 
     if let Some(query) = &app.search_query {
         spans.push(Span::styled(
@@ -103,8 +107,14 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         Span::styled(format!(" {} ", focus_hint), Style::default().fg(Color::DarkGray))
     };
 
+    let key_hints_str = if app.config.allow_host_switcher {
+        "1/2/3: panes | /: search | H: host | ?: help | q: quit "
+    } else {
+        "1/2/3: panes | /: search | ?: help | q: quit "
+    };
+
     let key_hints = Span::styled(
-        "1/2/3: panes | /: search | H: host | ?: help | q: quit ",
+        key_hints_str,
         Style::default().fg(Color::DarkGray),
     );
 

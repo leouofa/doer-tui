@@ -2,16 +2,22 @@ pub const PRESET_HOST_LOCAL: &str = "http://localhost:3000";
 pub const PRESET_HOST_SECONDARY: &str = "http://localhost:3010";
 
 pub fn get_preset_hosts() -> Vec<String> {
-    let mut hosts = vec![
-        PRESET_HOST_LOCAL.to_string(),
-        PRESET_HOST_SECONDARY.to_string(),
-    ];
+    let mut hosts = Vec::new();
     if let Ok(remote) = std::env::var("DOER_REMOTE_URL") {
         let norm = normalize_url(&remote);
-        if !hosts.contains(&norm) {
-            hosts.push(norm);
-        }
+        hosts.push(norm);
     }
+
+    let default_local = PRESET_HOST_LOCAL.to_string();
+    if !hosts.contains(&default_local) {
+        hosts.push(default_local);
+    }
+
+    let default_sec = PRESET_HOST_SECONDARY.to_string();
+    if !hosts.contains(&default_sec) {
+        hosts.push(default_sec);
+    }
+
     hosts
 }
 
@@ -19,6 +25,7 @@ pub fn get_preset_hosts() -> Vec<String> {
 pub struct Config {
     pub base_url: String,
     pub api_token: Option<String>,
+    pub allow_host_switcher: bool,
 }
 
 pub fn normalize_url(raw: &str) -> String {
@@ -47,12 +54,19 @@ impl Config {
             api_token: std::env::var("DOER_API_KEY")
                 .or_else(|_| std::env::var("DOER_API_TOKEN"))
                 .ok(),
+            allow_host_switcher: std::env::var("DOER_REMOTE_URL").is_err(),
         }
     }
 
     pub fn from_env_and_args() -> Self {
         let args: Vec<String> = std::env::args().collect();
+        let env_remote = std::env::var("DOER_REMOTE_URL").ok();
+        Self::parse_from_args_and_env(&args, env_remote.as_deref())
+    }
+
+    pub fn parse_from_args_and_env(args: &[String], env_remote: Option<&str>) -> Self {
         let mut chosen_url: Option<String> = None;
+        let mut has_allow_switch = false;
 
         let mut i = 1;
         while i < args.len() {
@@ -73,9 +87,13 @@ impl Config {
                     chosen_url = Some(PRESET_HOST_LOCAL.to_string());
                 }
                 "--remote" => {
-                    let remote = std::env::var("DOER_REMOTE_URL")
-                        .unwrap_or_else(|_| PRESET_HOST_SECONDARY.to_string());
+                    let remote = env_remote
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| PRESET_HOST_SECONDARY.to_string());
                     chosen_url = Some(remote);
+                }
+                "--allow-switch" => {
+                    has_allow_switch = true;
                 }
                 _ => {}
             }
@@ -83,10 +101,18 @@ impl Config {
         }
 
         let base_url = chosen_url
-            .or_else(|| std::env::var("DOER_API_URL").ok())
+            .or_else(|| env_remote.map(|s| s.to_string()))
             .unwrap_or_else(|| PRESET_HOST_LOCAL.to_string());
 
-        Self::new(&base_url)
+        let allow_host_switcher = env_remote.is_none() || has_allow_switch;
+
+        Self {
+            base_url: normalize_url(&base_url),
+            api_token: std::env::var("DOER_API_KEY")
+                .or_else(|_| std::env::var("DOER_API_TOKEN"))
+                .ok(),
+            allow_host_switcher,
+        }
     }
 
     pub fn set_url(&mut self, new_url: &str) {
@@ -105,5 +131,48 @@ mod tests {
         assert_eq!(normalize_url("localhost:3000"), "http://localhost:3000");
         assert_eq!(normalize_url("http://localhost:3000/api/v1"), "http://localhost:3000");
         assert_eq!(normalize_url("http://localhost:3000/api/v1/"), "http://localhost:3000");
+    }
+
+    #[test]
+    fn test_default_without_env_or_flags() {
+        let args = vec!["doer-tui".to_string()];
+        let cfg = Config::parse_from_args_and_env(&args, None);
+        assert_eq!(cfg.base_url, "http://localhost:3000");
+        assert!(cfg.allow_host_switcher);
+    }
+
+    #[test]
+    fn test_default_with_doer_remote_url() {
+        let args = vec!["doer-tui".to_string()];
+        let cfg = Config::parse_from_args_and_env(&args, Some("http://remote.host:3010"));
+        assert_eq!(cfg.base_url, "http://remote.host:3010");
+        // Locked by default when DOER_REMOTE_URL is set
+        assert!(!cfg.allow_host_switcher);
+    }
+
+    #[test]
+    fn test_allow_switch_override_with_remote_url() {
+        let args = vec!["doer-tui".to_string(), "--allow-switch".to_string()];
+        let cfg = Config::parse_from_args_and_env(&args, Some("http://remote.host:3010"));
+        assert_eq!(cfg.base_url, "http://remote.host:3010");
+        assert!(cfg.allow_host_switcher);
+    }
+
+    #[test]
+    fn test_local_flag_overrides_remote_env() {
+        let args = vec!["doer-tui".to_string(), "--local".to_string()];
+        let cfg = Config::parse_from_args_and_env(&args, Some("http://remote.host:3010"));
+        assert_eq!(cfg.base_url, "http://localhost:3000");
+    }
+
+    #[test]
+    fn test_custom_url_flag_overrides_remote_env() {
+        let args = vec![
+            "doer-tui".to_string(),
+            "--url".to_string(),
+            "http://custom:8080".to_string(),
+        ];
+        let cfg = Config::parse_from_args_and_env(&args, Some("http://remote.host:3010"));
+        assert_eq!(cfg.base_url, "http://custom:8080");
     }
 }

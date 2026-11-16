@@ -54,7 +54,7 @@ pub fn render(f: &mut Frame, app: &App) {
             upload_input,
             dest_input,
         } => render_attachments(f, app, *cursor, upload_input.as_deref(), dest_input.as_deref()),
-        Modal::Help => render_help(f),
+        Modal::Help => render_help(f, app.config.allow_host_switcher),
     }
 }
 
@@ -621,7 +621,7 @@ fn render_attachments(
     f.render_widget(footer, layout[1]);
 }
 
-fn render_help(f: &mut Frame) {
+fn render_help(f: &mut Frame, allow_switch: bool) {
     let area = centered_rect(75, 75, f.area());
     f.render_widget(Clear, area);
 
@@ -633,6 +633,12 @@ fn render_help(f: &mut Frame) {
 
     let inner = block.inner(area);
     f.render_widget(block, area);
+
+    let host_line = if allow_switch {
+        Line::from("  H / u          Switch Host URL presets or enter custom URL")
+    } else {
+        Line::from("  H / u          [Locked by DOER_REMOTE_URL] (pass --allow-switch to enable)")
+    };
 
     let lines = vec![
         Line::from(Span::styled(
@@ -662,7 +668,7 @@ fn render_help(f: &mut Frame) {
             "Management & Modals",
             Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
         )),
-        Line::from("  H / u          Switch Host URL presets or enter custom URL"),
+        host_line,
         Line::from("  /              Search & filter todo lists in real-time"),
         Line::from("  n              Create New Project (in pane 1) or Todo List (in pane 2/3)"),
         Line::from("  e              Edit metadata of selected Project or Todo List"),

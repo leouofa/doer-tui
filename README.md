@@ -4,10 +4,14 @@ A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and 
 
 ## Features
 
-- **Configurable Host URL & Quick Host Switcher**:
-  - Priority: CLI `--url <URL>` / `--host <URL>` / `--local` / `--remote` → `DOER_API_URL` env var → default `http://localhost:3000`.
-  - Built-in presets for local instances (`http://localhost:3000` and `http://localhost:3010`), plus support for custom remote URLs via `DOER_REMOTE_URL`.
-  - Press `H` or `u` at any time to open the in-app **Host Switcher** modal to toggle between presets or enter any custom URL on the fly.
+- **Host URL Resolution & Host Switcher**:
+  - **Environment default**: When `DOER_REMOTE_URL` is set in the shell (e.g. `export DOER_REMOTE_URL="http://your-host:3010"`), running `cargo run` defaults directly to that URL.
+  - **Fallback**: If `DOER_REMOTE_URL` is not set, defaults to `http://localhost:3000`.
+  - **CLI overrides**: `--url <URL>`, `--host <URL>`, and `--local` (`http://localhost:3000`) always take precedence over the environment.
+  - **Locking behavior**:
+    - If `DOER_REMOTE_URL` is set, host switching is locked by default so the TUI stays pinned to your configured instance.
+    - Pass `--allow-switch` to re-enable the Host Switcher dialog while using `DOER_REMOTE_URL`.
+    - If `DOER_REMOTE_URL` is not set, Host Switcher (`H` or `u`) is enabled automatically.
 - **3-Pane Master–Detail Layout**:
   - **Header**: Live host URL badge, stats counters (Total, Pinned, Projects, Attachments), and search query.
   - **Pane 1 `[1] Scopes & Projects`**: All Todo Lists, ★ Pinned, Standalone, and all Projects with task counts.
@@ -37,18 +41,17 @@ A fast, keyboard-driven terminal user interface (TUI) for the **Doer** task and 
 # Build
 cargo build --release
 
-# Run with default host (http://localhost:3000)
+# Run (defaults to DOER_REMOTE_URL if set, otherwise http://localhost:3000)
 cargo run
 
-# Run pointing to a secondary/remote host preset
-cargo run -- --remote
+# Force local host even if DOER_REMOTE_URL is set
+cargo run -- --local
 
-# Or specify any host URL directly
+# Specify any target host explicitly
 cargo run -- --url http://localhost:3010
 
-# Or via environment variable
-export DOER_API_URL="http://localhost:3010"
-cargo run
+# Allow in-app Host Switcher even when DOER_REMOTE_URL is set
+cargo run -- --allow-switch
 ```
 
 ## Keyboard Shortcuts
@@ -67,7 +70,7 @@ cargo run
 | `g` / `G` | Jump to top / bottom of detail document |
 | `y` | Yank active task text to system clipboard |
 | `Y` | Yank full markdown body to system clipboard |
-| `H` / `u` | Open Host Switcher dialog |
+| `H` / `u` | Open Host Switcher dialog (when enabled or via `--allow-switch`) |
 | `/` | Live search & filter todo lists (`Esc` to clear) |
 | `n` | New Project (in pane 1) or Todo List (in pane 2/3) |
 | `e` | Edit Project or Todo List metadata |
