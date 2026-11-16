@@ -56,6 +56,17 @@ A fast, keyboard-driven terminal user interface (TUI) for the [Doer](https://git
 > [!NOTE]
 > `doer-tui` connects to a running [Doer](https://github.com/leouofa/doer) backend instance (defaults to `http://localhost:3000` or `DOER_REMOTE_URL`).
 
+### Install via Cargo (crates.io)
+
+```bash
+cargo install the-doer-tui
+
+# Launch the app
+doer-tui
+```
+
+### Build from Source
+
 ```bash
 # Build
 cargo build --release

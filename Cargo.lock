@@ -276,21 +276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "doer-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arboard",
- "crossterm",
- "ratatui",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "unicode-width",
-]
-
-[[package]]
 name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1658,6 +1643,21 @@ dependencies = [
  "once_cell",
  "rustix 1.1.6",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "the-doer-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arboard",
+ "crossterm",
+ "ratatui",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "unicode-width",
 ]
 
 [[package]]

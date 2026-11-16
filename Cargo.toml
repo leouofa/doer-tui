@@ -1,9 +1,14 @@
 [package]
-name = "doer-tui"
+name = "the-doer-tui"
 version = "0.1.0"
 edition = "2021"
+authors = ["Leonid Medovyy <leonid@macron1.io>"]
 description = "A fast, keyboard-driven terminal user interface for Doer task & checklist manager"
+readme = "README.md"
+repository = "https://github.com/leouofa/doer-tui"
 license = "MIT"
+keywords = ["tui", "todo", "task-manager", "ratatui", "terminal"]
+categories = ["command-line-utilities"]
 
 [lib]
 name = "doer_tui"
