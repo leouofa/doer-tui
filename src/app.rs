@@ -47,6 +47,7 @@ pub enum ScopeItem {
     Pinned,
     Standalone,
     Project(Project),
+    PinnedTodoList(TodoList),
 }
 
 #[derive(Debug, Clone)]
@@ -114,6 +115,7 @@ pub struct App {
     pub stats: Stats,
     pub preset_hosts: Vec<String>,
     pub projects: Vec<Project>,
+    pub pinned_todo_lists: Vec<TodoList>,
     pub todo_lists: Vec<TodoList>,
     pub current_todo_list: Option<TodoListDetail>,
     pub checklist_items: Vec<ChecklistItem>,
@@ -128,6 +130,16 @@ pub struct App {
     pub search_query: Option<String>,
 
     pub clipboard: Option<Clipboard>,
+}
+
+pub fn sort_todo_lists(lists: &mut [TodoList]) {
+    lists.sort_by(|a, b| {
+        b.pinned
+            .cmp(&a.pinned)
+            .then_with(|| a.title.to_lowercase().cmp(&b.title.to_lowercase()))
+            .then_with(|| a.title.cmp(&b.title))
+            .then_with(|| a.id.cmp(&b.id))
+    });
 }
 
 impl App {
@@ -148,6 +160,7 @@ impl App {
             stats: Stats::default(),
             preset_hosts: get_preset_hosts(),
             projects: Vec::new(),
+            pinned_todo_lists: Vec::new(),
             todo_lists: Vec::new(),
             current_todo_list: None,
             checklist_items: Vec::new(),
@@ -186,6 +199,7 @@ impl App {
     pub fn reload_all(&mut self) {
         self.load_stats();
         self.load_projects();
+        self.load_pinned_todo_lists();
         self.load_todo_lists();
     }
 
@@ -208,8 +222,21 @@ impl App {
         }
     }
 
+    pub fn load_pinned_todo_lists(&mut self) {
+        match self.client.list_todo_lists(None, None, Some(true), None) {
+            Ok(mut lists) => {
+                sort_todo_lists(&mut lists);
+                self.pinned_todo_lists = lists;
+                if self.sidebar_selected >= self.total_sidebar_items() {
+                    self.sidebar_selected = self.total_sidebar_items().saturating_sub(1);
+                }
+            }
+            Err(e) => self.set_status(format!("Pinned lists error: {}", e), true),
+        }
+    }
+
     pub fn total_sidebar_items(&self) -> usize {
-        3 + self.projects.len()
+        3 + self.projects.len() + self.pinned_todo_lists.len()
     }
 
     pub fn get_sidebar_item(&self, idx: usize) -> ScopeItem {
@@ -218,10 +245,16 @@ impl App {
             1 => ScopeItem::Pinned,
             2 => ScopeItem::Standalone,
             n => {
-                if let Some(proj) = self.projects.get(n - 3) {
-                    ScopeItem::Project(proj.clone())
+                let proj_idx = n - 3;
+                if proj_idx < self.projects.len() {
+                    ScopeItem::Project(self.projects[proj_idx].clone())
                 } else {
-                    ScopeItem::All
+                    let pinned_idx = proj_idx - self.projects.len();
+                    if let Some(tl) = self.pinned_todo_lists.get(pinned_idx) {
+                        ScopeItem::PinnedTodoList(tl.clone())
+                    } else {
+                        ScopeItem::All
+                    }
                 }
             }
         }
@@ -240,10 +273,23 @@ impl App {
             ScopeItem::Project(p) => {
                 self.client.list_todo_lists(Some(p.id), None, None, q)
             }
+            ScopeItem::PinnedTodoList(tl) => {
+                if let Some(query) = q {
+                    let query_lower = query.to_lowercase();
+                    if tl.title.to_lowercase().contains(&query_lower) {
+                        Ok(vec![tl])
+                    } else {
+                        Ok(vec![])
+                    }
+                } else {
+                    Ok(vec![tl])
+                }
+            }
         };
 
         match res {
-            Ok(lists) => {
+            Ok(mut lists) => {
+                sort_todo_lists(&mut lists);
                 self.todo_lists = lists;
                 if self.todo_lists.is_empty() {
                     self.todo_lists_selected = 0;
@@ -362,6 +408,7 @@ impl App {
                     };
                     self.set_status(msg, false);
                     self.load_stats();
+                    self.load_pinned_todo_lists();
                     self.load_todo_lists();
                 }
                 Err(e) => self.set_status(format!("Toggle pin error: {}", e), true),
@@ -556,7 +603,14 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.focused_pane = Pane::TodoLists;
+                match self.get_sidebar_item(self.sidebar_selected) {
+                    ScopeItem::PinnedTodoList(_) => {
+                        self.focused_pane = Pane::Detail;
+                    }
+                    _ => {
+                        self.focused_pane = Pane::TodoLists;
+                    }
+                }
             }
             KeyCode::Char('n') => {
                 // New Project
@@ -1073,6 +1127,8 @@ impl App {
                             Ok(tl) => {
                                 self.set_status(format!("Saved todo list '{}'", tl.title), false);
                                 self.load_stats();
+                                self.load_projects();
+                                self.load_pinned_todo_lists();
                                 self.load_todo_lists();
                             }
                             Err(e) => {
@@ -1116,6 +1172,7 @@ impl App {
                                 self.sidebar_selected = 0;
                                 self.load_stats();
                                 self.load_projects();
+                                self.load_pinned_todo_lists();
                                 self.load_todo_lists();
                             }
                             Err(e) => {
@@ -1126,6 +1183,8 @@ impl App {
                             Ok(_) => {
                                 self.set_status(format!("Deleted todo list '{}'", tl.title), false);
                                 self.load_stats();
+                                self.load_projects();
+                                self.load_pinned_todo_lists();
                                 self.load_todo_lists();
                             }
                             Err(e) => {
@@ -1335,5 +1394,120 @@ impl App {
 
             None => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_todo(id: u64, title: &str, pinned: bool) -> TodoList {
+        TodoList {
+            id,
+            project_id: None,
+            project_name: None,
+            title: title.to_string(),
+            body: None,
+            pinned,
+            pinned_position: None,
+            attachments_count: 0,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+
+    #[test]
+    fn test_sort_todo_lists_pinned_first_and_alphabetical() {
+        let mut lists = vec![
+            make_test_todo(1, "zebra", false),
+            make_test_todo(2, "apple", false),
+            make_test_todo(3, "Banana", true),
+            make_test_todo(4, "avocado", true),
+            make_test_todo(5, "Carrot", false),
+        ];
+
+        sort_todo_lists(&mut lists);
+
+        let titles: Vec<&str> = lists.iter().map(|l| l.title.as_str()).collect();
+        // Pinned first: avocado, Banana
+        // Unpinned second: apple, Carrot, zebra
+        assert_eq!(titles, vec!["avocado", "Banana", "apple", "Carrot", "zebra"]);
+        assert!(lists[0].pinned);
+        assert!(lists[1].pinned);
+        assert!(!lists[2].pinned);
+        assert!(!lists[3].pinned);
+        assert!(!lists[4].pinned);
+    }
+
+    #[test]
+    fn test_sidebar_items_resolution() {
+        let config = Config::new("http://localhost:3000");
+        let app = App {
+            config: config.clone(),
+            client: ApiClient::new(&config),
+            should_quit: false,
+            pending_editor: None,
+            status: None,
+            focused_pane: Pane::Sidebar,
+            modal: None,
+            stats: Stats::default(),
+            preset_hosts: Vec::new(),
+            projects: vec![
+                Project {
+                    id: 10,
+                    name: "Work".to_string(),
+                    description: None,
+                    todo_lists_count: 3,
+                    created_at: None,
+                    updated_at: None,
+                },
+                Project {
+                    id: 20,
+                    name: "Home".to_string(),
+                    description: None,
+                    todo_lists_count: 1,
+                    created_at: None,
+                    updated_at: None,
+                },
+            ],
+            pinned_todo_lists: vec![
+                make_test_todo(101, "Groceries", true),
+                make_test_todo(102, "Sprint Tasks", true),
+            ],
+            todo_lists: Vec::new(),
+            current_todo_list: None,
+            checklist_items: Vec::new(),
+            sidebar_selected: 0,
+            todo_lists_selected: 0,
+            detail_selected_checklist: None,
+            detail_scroll: 0,
+            search_query: None,
+            clipboard: None,
+        };
+
+        // 3 scopes + 2 projects + 2 pinned = 7 items
+        assert_eq!(app.total_sidebar_items(), 7);
+
+        assert_eq!(app.get_sidebar_item(0), ScopeItem::All);
+        assert_eq!(app.get_sidebar_item(1), ScopeItem::Pinned);
+        assert_eq!(app.get_sidebar_item(2), ScopeItem::Standalone);
+        assert_eq!(
+            app.get_sidebar_item(3),
+            ScopeItem::Project(app.projects[0].clone())
+        );
+        assert_eq!(
+            app.get_sidebar_item(4),
+            ScopeItem::Project(app.projects[1].clone())
+        );
+        assert_eq!(
+            app.get_sidebar_item(5),
+            ScopeItem::PinnedTodoList(app.pinned_todo_lists[0].clone())
+        );
+        assert_eq!(
+            app.get_sidebar_item(6),
+            ScopeItem::PinnedTodoList(app.pinned_todo_lists[1].clone())
+        );
+        // Out of bounds falls back to All
+        assert_eq!(app.get_sidebar_item(7), ScopeItem::All);
     }
 }

@@ -88,8 +88,9 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
             };
 
             let count_str = format!("({})", proj.todo_lists_count);
-            let name_truncated = if proj.name.len() > 14 {
-                format!("{}…", &proj.name[..13])
+            let name_truncated = if proj.name.chars().count() > 14 {
+                let s: String = proj.name.chars().take(13).collect();
+                format!("{}…", s)
             } else {
                 proj.name.clone()
             };
@@ -98,6 +99,55 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(prefix, style),
                 Span::styled(format!("{:<14}", name_truncated), style),
                 Span::styled(count_str, Style::default().fg(Color::DarkGray)),
+            ]);
+            items.push(ListItem::new(line));
+        }
+    }
+
+    // Divider
+    items.push(ListItem::new(Line::from(Span::styled(
+        " ───────────────────────",
+        Style::default().fg(Color::DarkGray),
+    ))));
+
+    // Pinned Header
+    items.push(ListItem::new(Line::from(Span::styled(
+        "  PINNED",
+        Style::default()
+            .fg(Color::DarkGray)
+            .add_modifier(Modifier::BOLD),
+    ))));
+
+    if app.pinned_todo_lists.is_empty() {
+        items.push(ListItem::new(Line::from(Span::styled(
+            "   (no pinned lists)",
+            Style::default().fg(Color::DarkGray),
+        ))));
+    } else {
+        for (idx, tl) in app.pinned_todo_lists.iter().enumerate() {
+            let actual_idx = 3 + app.projects.len() + idx;
+            let is_selected = app.sidebar_selected == actual_idx;
+            let prefix = if is_selected { "▶ " } else { "  " };
+
+            let style = if is_selected {
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+
+            let char_count = tl.title.chars().count();
+            let name_truncated = if char_count > 22 {
+                let s: String = tl.title.chars().take(21).collect();
+                format!("{}…", s)
+            } else {
+                tl.title.clone()
+            };
+
+            let line = Line::from(vec![
+                Span::styled(prefix, style),
+                Span::styled(name_truncated, style),
             ]);
             items.push(ListItem::new(line));
         }

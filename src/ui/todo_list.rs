@@ -31,6 +31,7 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
         ScopeItem::Pinned => "★ Pinned".to_string(),
         ScopeItem::Standalone => "Standalone".to_string(),
         ScopeItem::Project(p) => p.name,
+        ScopeItem::PinnedTodoList(tl) => format!("★ {}", tl.title),
     };
 
     let title_text = format!(" [2] Todo Lists ({} · {}) ", scope_name, app.todo_lists.len());
