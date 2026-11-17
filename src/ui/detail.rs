@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
     Frame,
 };
 
@@ -101,7 +101,7 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
         Span::styled(att_text, Style::default().fg(Color::Blue)),
     ]));
 
-    f.render_widget(Paragraph::new(meta_lines), chunks[0]);
+    f.render_widget(Paragraph::new(meta_lines).wrap(Wrap { trim: false }), chunks[0]);
 
     // Divider
     let divider = Paragraph::new(Line::from(Span::styled(
@@ -120,7 +120,9 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
     );
 
     let scroll_y = app.detail_scroll as u16;
-    let body_paragraph = Paragraph::new(rendered_lines).scroll((scroll_y, 0));
+    let body_paragraph = Paragraph::new(rendered_lines)
+        .wrap(Wrap { trim: false })
+        .scroll((scroll_y, 0));
     f.render_widget(body_paragraph, chunks[2]);
 }
 
